@@ -53,10 +53,10 @@ That's it! The editor is ready to use.
 
 ## 🛠️ Tech Stack
 
-- **HTML5** — Semantic structure.
-- **CSS3** — Custom properties (variables) for theming, Flexbox & Grid for layout.
-- **JavaScript (ES6+)** — All logic, rendering, and local storage.
-- **Tailwind CSS** — Utility-first styling via CDN (no build step).
+- **HTML5** - Semantic structure.
+- **CSS3** - Custom properties (variables) for theming, Flexbox & Grid for layout.
+- **JavaScript (ES6+)** - All logic, rendering, and local storage.
+- **Tailwind CSS** - Utility-first styling via CDN (no build step).
 - **Marked.js** - Markdown parsing.
 - **DOMPurify** - HTML sanitization for safe preview.
 
