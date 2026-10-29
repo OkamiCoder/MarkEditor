@@ -28,6 +28,7 @@ MarkEditor is a lightweight, zero-setup Markdown editor that runs entirely in yo
 | **Statistics** | Real-time word, character, line count, and estimated reading time. |
 | **Export Options** | Copy Markdown to clipboard, download as `.md`, or export as a styled `.html` file. |
 | **Mobile-Friendly** | Responsive design with dedicated tabs for editor and preview on small screens. |
+| **Autosave** | Your draft is saved to `localStorage` automatically. Restored on next visit. |
 
 ---
 
