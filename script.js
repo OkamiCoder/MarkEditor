@@ -35,7 +35,12 @@ console.log(greet('Мир'));
 [Узнать больше о Markdown](https://ru.wikipedia.org/wiki/Markdown)
 `;
 
-  /* ---------- DOM ---------- */
+  const CONTENT_KEY       = 'markeditor:content';
+  const THEME_KEY         = 'markeditor:theme';
+  const WIDTH_KEY         = 'markeditor:editor-width';
+  const RESTORE_FLAG_KEY  = 'markeditor:restore-toast-shown';
+  const SAVE_DELAY        = 400;
+
   const $ = (id) => document.getElementById(id);
 
   const editor       = $('editor');
@@ -67,6 +72,87 @@ console.log(greet('Мир'));
     (typeof window.DOMPurify !== 'undefined')
       ? window.DOMPurify.sanitize(html)
       : html;
+
+  let saveTimer       = 0;
+  let saveStatusTimer = 0;
+  let saveStatusEl    = null;
+
+function initSaveStatus() {
+    if (!panelEditor) return;
+    const head = panelEditor.querySelector('.panel-head');
+    if (!head) return;
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:10px;';
+
+    saveStatusEl = document.createElement('span');
+    saveStatusEl.id = 'saveStatus';
+    saveStatusEl.setAttribute('aria-live', 'polite');
+    saveStatusEl.style.cssText = [
+      'font-family:"JetBrains Mono",ui-monospace,monospace',
+      'font-size:10px',
+      'font-weight:600',
+      'color:var(--accent,#6366f1)',
+      'opacity:0',
+      'transition:opacity .3s ease',
+      'user-select:none',
+      'pointer-events:none'
+    ].join(';');
+
+    if (cursorInfo && cursorInfo.parentNode === head) {
+      head.insertBefore(wrap, cursorInfo);
+      wrap.appendChild(saveStatusEl);
+      wrap.appendChild(cursorInfo);
+    } else {
+      head.appendChild(wrap);
+      wrap.appendChild(saveStatusEl);
+    }
+  }
+
+  function flashSaveStatus() {
+    if (!saveStatusEl) return;
+    saveStatusEl.textContent = 'Сохранено';
+    saveStatusEl.style.opacity = '1';
+    clearTimeout(saveStatusTimer);
+    saveStatusTimer = setTimeout(() => {
+      if (saveStatusEl) saveStatusEl.style.opacity = '0';
+    }, 1500);
+  }
+
+  function saveContent() {
+    try {
+      localStorage.setItem(CONTENT_KEY, editor.value);
+      flashSaveStatus();
+    } catch (e) {
+      console.warn('[MarkEditor] autosave failed:', e);
+    }
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveContent, SAVE_DELAY);
+  }
+
+  function loadContent() {
+    try {
+      return localStorage.getItem(CONTENT_KEY);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearSavedContent() {
+    try { localStorage.removeItem(CONTENT_KEY); } catch (e) {}
+  }
+
+  function notifyRestoredOnce() {
+    try {
+      if (sessionStorage.getItem(RESTORE_FLAG_KEY)) return;
+      sessionStorage.setItem(RESTORE_FLAG_KEY, '1');
+    } catch (e) {
+    }
+    showToast('Черновик восстановлен');
+  }
 
   let renderTimer = 0;
 
@@ -130,6 +216,7 @@ console.log(greet('Мир'));
     editor.setSelectionRange(a, b);
     updateCursor();
     scheduleRender();
+    scheduleSave();
   }
 
   function wrapSelection(before, after, placeholder) {
@@ -286,7 +373,7 @@ console.log(greet('Мир'));
     }
   });
 
-  editor.addEventListener('input',  () => { updateCursor(); updateStats(); scheduleRender(); });
+  editor.addEventListener('input',  () => { updateCursor(); updateStats(); scheduleRender(); scheduleSave(); });
   editor.addEventListener('click',  updateCursor);
   editor.addEventListener('keyup',  updateCursor);
   editor.addEventListener('select', updateCursor);
@@ -303,7 +390,7 @@ console.log(greet('Мир'));
     else        document.documentElement.classList.add('dark');
 
     try {
-      localStorage.setItem('markeditor:theme', isDark ? 'light' : 'dark');
+      localStorage.setItem(THEME_KEY, isDark ? 'light' : 'dark');
     } catch (e) {}
 
     syncThemeIcons();
@@ -314,6 +401,7 @@ console.log(greet('Мир'));
 
   let toastTimer = 0;
   function showToast(msg) {
+    if (!toastEl) return;
     toastEl.textContent = msg;
     toastEl.classList.add('show');
     clearTimeout(toastTimer);
@@ -404,7 +492,9 @@ ${preview.innerHTML}
   btnClear.addEventListener('click', () => {
     if (editor.value.trim() === '') return;
     if (confirm('Очистить редактор? Это действие нельзя отменить.')) {
+      clearTimeout(saveTimer);
       editor.value = '';
+      clearSavedContent();
       editor.focus();
       updateCursor();
       scheduleRender();
@@ -459,10 +549,7 @@ ${preview.innerHTML}
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
     try {
-      localStorage.setItem(
-        'markeditor:editor-width',
-        main.style.getPropertyValue('--editor-width')
-      );
+      localStorage.setItem(WIDTH_KEY, main.style.getPropertyValue('--editor-width'));
     } catch (e) {}
   }
 
@@ -475,12 +562,25 @@ ${preview.innerHTML}
   document.addEventListener('touchcancel', endDrag);
 
   try {
-    const savedWidth = localStorage.getItem('markeditor:editor-width');
+    const savedWidth = localStorage.getItem(WIDTH_KEY);
     if (savedWidth) main.style.setProperty('--editor-width', savedWidth);
   } catch (e) {}
 
-  editor.value = DEFAULT_TEXT;
+  window.addEventListener('beforeunload', () => {
+    clearTimeout(saveTimer);
+    saveContent();
+  });
+
+  initSaveStatus();
+
+  const savedContent = loadContent();
+  editor.value = (savedContent !== null) ? savedContent : DEFAULT_TEXT;
+
   updateCursor();
   renderNow();
+
+  if (savedContent !== null && savedContent !== '') {
+    notifyRestoredOnce();
+  }
 
 })();
