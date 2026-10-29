@@ -3,7 +3,7 @@
 # MarkEditor
 
 <p>
-   <img src="./assets/banner.png" alt="project banner" width="80%">
+   <img src="./assets/banner.png" alt="project banner" width="100%">
 </p>
 
 **A fast, browser-based Markdown editor with live preview.**
