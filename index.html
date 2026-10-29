@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="OkamiCoder">
+  <meta name="description" content="MarkEditor — браузерный Markdown-редактор с живым предпросмотром.">
+  <title>MarkEditor</title>
+
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('markeditor:theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        if (t === 'dark') document.documentElement.classList.add('dark');
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="flex h-screen flex-col overflow-hidden bg-slate-100 text-slate-800 dark:bg-[#0b1120] dark:text-slate-200 font-sans antialiased">
+
+  <header class="flex flex-shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white/85 px-4 py-2.5 backdrop-blur dark:border-slate-800 dark:bg-[#0f172a]/85">
+    <div class="brand">
+      <span class="brand-name">MarkEditor</span>
+      <span class="brand-tag">Markdown Editor</span>
+    </div>
+
+    <div class="header-actions">
+      <button id="btnTheme" class="icon-btn" title="Сменить тему" aria-label="Сменить тему">
+        <svg id="iconMoon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg id="iconSun" class="is-hidden" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+
+      <button id="btnCopy" class="icon-btn" title="Скопировать Markdown" aria-label="Скопировать Markdown">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+
+      <button id="btnDownloadMd" class="icon-btn" title="Скачать .md" aria-label="Скачать .md">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      </button>
+
+      <button id="btnDownloadHtml" class="icon-btn" title="Скачать .html" aria-label="Скачать .html">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M10 13l-2 2 2 2"/><path d="M14 13l2 2-2 2"/></svg>
+      </button>
+
+      <button id="btnClear" class="icon-btn text-rose-500 dark:text-rose-400" title="Очистить" aria-label="Очистить">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="tab-bar md:hidden">
+    <button type="button" data-tab="editor" class="tab tab-active">Редактор</button>
+    <button type="button" data-tab="preview" class="tab">Предпросмотр</button>
+  </div>
+
+  <main id="main" class="main-grid">
+
+    <section id="panelEditor" class="panel active">
+      <div class="panel-head">
+        <span class="panel-title">Редактор</span>
+        <span id="cursorInfo" class="panel-meta">Стр 1, Кол 1</span>
+      </div>
+
+      <div id="toolbar" class="toolbar">
+        <button type="button" class="tbtn" data-action="bold"      title="Жирный (Ctrl+B)"><b>B</b></button>
+        <button type="button" class="tbtn" data-action="italic"    title="Курсив (Ctrl+I)"><i>I</i></button>
+        <button type="button" class="tbtn" data-action="strike"    title="Зачёркнутый"><span style="text-decoration:line-through">S</span></button>
+        <span class="toolbar-sep"></span>
+        <button type="button" class="tbtn" data-action="h1" title="Заголовок 1">H1</button>
+        <button type="button" class="tbtn" data-action="h2" title="Заголовок 2">H2</button>
+        <button type="button" class="tbtn" data-action="h3" title="Заголовок 3">H3</button>
+        <span class="toolbar-sep"></span>
+        <button type="button" class="tbtn" data-action="code"      title="Инлайн-код">`</button>
+        <button type="button" class="tbtn" data-action="codeblock" title="Блок кода">&lt;/&gt;</button>
+        <button type="button" class="tbtn" data-action="link"      title="Ссылка (Ctrl+K)">🔗</button>
+        <button type="button" class="tbtn" data-action="image"     title="Изображение">🖼</button>
+        <span class="toolbar-sep"></span>
+        <button type="button" class="tbtn" data-action="ul"    title="Маркированный список">•</button>
+        <button type="button" class="tbtn" data-action="ol"    title="Нумерованный список">1.</button>
+        <button type="button" class="tbtn" data-action="quote" title="Цитата">❝</button>
+        <button type="button" class="tbtn" data-action="hr"    title="Разделитель">―</button>
+        <button type="button" class="tbtn" data-action="table" title="Таблица">▦</button>
+      </div>
+
+      <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
+        placeholder="# Привет, мир!&#10;&#10;Начни печатать Markdown здесь..."></textarea>
+    </section>
+
+    <div id="divider" title="Потяни, чтобы изменить ширину"></div>
+
+    <section id="panelPreview" class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Предпросмотр</span>
+        <span class="panel-meta">live</span>
+      </div>
+      <div id="preview" class="markdown-body"></div>
+    </section>
+
+  </main>
+
+  <footer class="flex flex-shrink-0 items-center justify-between gap-4 border-t border-slate-200 bg-white/85 px-4 py-1.5 text-[11px] text-slate-500 backdrop-blur dark:border-slate-800 dark:bg-[#0f172a]/85 dark:text-slate-400">
+    <div class="flex gap-4">
+      <span><b id="statWords" class="font-semibold text-slate-700 dark:text-slate-300">0</b> слов</span>
+      <span><b id="statChars" class="font-semibold text-slate-700 dark:text-slate-300">0</b> символов</span>
+      <span class="hidden sm:inline"><b id="statLines" class="font-semibold text-slate-700 dark:text-slate-300">0</b> строк</span>
+    </div>
+    <div><span id="statRead">~0 мин чтения</span></div>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
