@@ -2,6 +2,10 @@
 
 # MarkEditor
 
+<p>
+   <img src="./assets/banner.png" alt="project banner" width="80%">
+</p>
+
 **A fast, browser-based Markdown editor with live preview.**
 
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
